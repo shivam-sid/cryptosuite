@@ -1,8 +1,12 @@
+import traceback
+
 import customtkinter
 from gui.encrypt_frame import EncryptFrame
 from gui.decrypt_frame import DecryptFrame
-from gui.toast import ToastNotification
 
+import importlib, gui.toast
+importlib.reload(gui.toast)
+from gui.toast import ToastNotification
 
 class App(customtkinter.CTk):
     def __init__(self, **kwargs):
@@ -88,7 +92,7 @@ class App(customtkinter.CTk):
         toast.place(relx=0.99, rely=0.98, anchor="se")
         toast.lift()
         self.active_toast = toast
-        self.after(4000, toast.destroy)
+        self.after(6000, toast.destroy)
 
     def select_frame(self, name):
         self.encrypt_button.configure(

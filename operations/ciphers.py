@@ -1,46 +1,32 @@
-# File: operations/ciphers.py
+# operations/ciphers.py
+# ✅ Full version with all classical and modern symmetric ciphers implemented.
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding, hashes, hmac
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
+import os, base64
+
+# ---------------------------------------------------------------------------------------
+# Classic Ciphers
+# ---------------------------------------------------------------------------------------
 
 def caesar_cipher(text: str, shift: int, decrypt: bool = False) -> tuple[bool, str]:
-    """
-    Encrypts or decrypts text using the Caesar cipher method.
-
-    Args:
-        text (str): The input string to be processed.
-        shift (int): The number of positions to shift letters.
-        decrypt (bool): If True, the function will decrypt the text.
-                         If False, it will encrypt.
-
-    Returns:
-        A tuple containing a boolean for success and the resulting string.
-    """
     if not isinstance(shift, int):
-        return False, "Shift value must be an integer."
-
-    if decrypt:
-        shift = -shift
-
+        return False, "Shift must be integer."
+    if decrypt: shift = -shift
     result = ""
     for char in text:
         if 'a' <= char <= 'z':
-            # Handle lowercase letters
-            shifted_char = chr(((ord(char) - ord('a') + shift) % 26) + ord('a'))
-            result += shifted_char
+            result += chr(((ord(char) - ord('a') + shift) % 26) + ord('a'))
         elif 'A' <= char <= 'Z':
-            # Handle uppercase letters
-            shifted_char = chr(((ord(char) - ord('A') + shift) % 26) + ord('A'))
-            result += shifted_char
+            result += chr(((ord(char) - ord('A') + shift) % 26) + ord('A'))
         else:
-            # Keep non-alphabetic characters unchanged
             result += char
-
     return True, result
 
 
 def atbash_cipher(text: str) -> tuple[bool, str]:
-    """
-    Encrypts or decrypts text using the Atbash cipher method.
-    The cipher is reciprocal, so encryption and decryption are the same.
-    """
     result = ""
     for char in text:
         if 'a' <= char <= 'z':
@@ -53,241 +39,225 @@ def atbash_cipher(text: str) -> tuple[bool, str]:
 
 
 def rot13_cipher(text: str) -> tuple[bool, str]:
-    """
-    Encrypts/decrypts text using the ROT13 cipher.
-    ROT13 is a special case of the Caesar cipher with a shift of 13.
-    """
     return caesar_cipher(text, 13)
 
 
 def vigenere_cipher(text: str, key: str, decrypt: bool = False) -> tuple[bool, str]:
-    """
-    Encrypts/decrypts text using the Vigenère cipher.
-
-    Args:
-        text (str): The input string to be processed.
-        key (str): The keyword to use for shifting.
-        decrypt (bool): If True, the function will decrypt the text.
-
-    Returns:
-        A tuple containing a boolean for success and the resulting string.
-    """
     if not key.isalpha():
-        return False, "Key must contain only alphabetic characters."
-
-    key_repeated = (key.upper() * (len(text) // len(key) + 1))[:len(text)]
-    result = ""
-    key_index = 0
-
+        return False, "Key must contain only letters."
+    key = key.upper()
+    result, key_index = "", 0
     for char in text:
-        shift = 0
-        if 'a' <= char <= 'z':
-            shift = ord(key_repeated[key_index]) - ord('A')
+        if char.isalpha():
+            shift = ord(key[key_index % len(key)]) - ord('A')
+            base = ord('A') if char.isupper() else ord('a')
             if decrypt:
-                shifted_char = chr(((ord(char) - ord('a') - shift + 26) % 26) + ord('a'))
+                result += chr((ord(char) - base - shift) % 26 + base)
             else:
-                shifted_char = chr(((ord(char) - ord('a') + shift) % 26) + ord('a'))
-            result += shifted_char
-            key_index += 1
-        elif 'A' <= char <= 'Z':
-            shift = ord(key_repeated[key_index]) - ord('A')
-            if decrypt:
-                shifted_char = chr(((ord(char) - ord('A') - shift + 26) % 26) + ord('A'))
-            else:
-                shifted_char = chr(((ord(char) - ord('A') + shift) % 26) + ord('A'))
-            result += shifted_char
+                result += chr((ord(char) - base + shift) % 26 + base)
             key_index += 1
         else:
             result += char
-
     return True, result
 
+# ---------------------------------------------------------------------------------------
+# Symmetric Block Ciphers (AES, DES, 3DES, Blowfish)
+# ---------------------------------------------------------------------------------------
 
-# File: operations/ciphers.py
+def _pad(data: bytes) -> bytes:
+    padder = padding.PKCS7(128).padder()
+    return padder.update(data) + padder.finalize()
 
-# ... (existing functions)
+def _unpad(data: bytes) -> bytes:
+    unpadder = padding.PKCS7(128).unpadder()
+    return unpadder.update(data) + unpadder.finalize()
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
-import os
-import hashlib
-
-
-def aes_encrypt(text: str, key: str) -> tuple[bool, str]:
-    """Encrypts text using AES-256."""
+# AES (CBC Mode)
+def aes_encrypt(text: str, key: str):
     try:
-        if len(key) not in [16, 24, 32]:
-            return False, "Invalid AES key size. Must be 16, 24, or 32 bytes."
-
-        key_bytes = key.encode('utf-8')
+        key_bytes = key.encode()
+        if len(key_bytes) not in (16, 24, 32):
+            return False, "AES key must be 16, 24, or 32 bytes."
         iv = os.urandom(16)
-        
-        padder = padding.PKCS7(algorithms.AES.block_size).padder()
-        padded_data = padder.update(text.encode('utf-8')) + padder.finalize()
-        
         cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        ct = encryptor.update(padded_data) + encryptor.finalize()
-        
-        return True, iv.hex() + ct.hex()
+        enc = cipher.encryptor()
+        ct = enc.update(_pad(text.encode())) + enc.finalize()
+        return True, base64.b64encode(iv + ct).decode()
     except Exception as e:
-        return False, f"Failed to encrypt with AES: {e}"
+        return False, f"AES encrypt error: {e}"
 
-
-# File: operations/ciphers.py
-
-# ... (rest of the file)
-
-def des_encrypt(text: str, key: str) -> tuple[bool, str]:
-    """Encrypts text using DES."""
+def aes_decrypt(data: str, key: str):
     try:
-        if len(key) != 8:
-            return False, "Invalid DES key size. Must be 8 bytes."
-
-        key_bytes = key.encode('utf-8')
-        iv = os.urandom(8)
-        
-        padder = padding.PKCS7(algorithms.TripleDES.block_size).padder()
-        padded_data = padder.update(text.encode('utf-8')) + padder.finalize()
-        
-        cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        ct = encryptor.update(padded_data) + encryptor.finalize()
-
-        return True, iv.hex() + ct.hex()
-    except Exception as e:
-        return False, f"Failed to encrypt with DES: {e}"
-
-
-def triple_des_encrypt(text: str, key: str) -> tuple[bool, str]:
-    """Encrypts text using Triple DES."""
-    try:
-        # TDES keys must be 16 or 24 bytes
-        if len(key) not in [16, 24]:
-            return False, "Invalid Triple DES key size. Must be 16 or 24 bytes."
-            
-        key_bytes = key.encode('utf-8')
-        iv = os.urandom(8)
-
-        padder = padding.PKCS7(algorithms.TripleDES.block_size).padder()
-        padded_data = padder.update(text.encode('utf-8')) + padder.finalize()
-
-        cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        ct = encryptor.update(padded_data) + encryptor.finalize()
-        
-        return True, iv.hex() + ct.hex()
-    except Exception as e:
-        return False, f"Failed to encrypt with Triple DES: {e}"
-
-
-def blowfish_encrypt(text: str, key: str) -> tuple[bool, str]:
-    """Encrypts text using Blowfish."""
-    try:
-        # Blowfish key size must be between 4 and 56 bytes.
-        if not 4 <= len(key) <= 56:
-            return False, "Invalid Blowfish key size. Must be between 4 and 56 bytes."
-            
-        key_bytes = key.encode('utf-8')
-        iv = os.urandom(8)
-
-        padder = padding.PKCS7(algorithms.Blowfish.block_size).padder()
-        padded_data = padder.update(text.encode('utf-8')) + padder.finalize()
-
-        cipher = Cipher(algorithms.Blowfish(key_bytes), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        ct = encryptor.update(padded_data) + encryptor.finalize()
-        
-        return True, iv.hex() + ct.hex()
-    except Exception as e:
-        return False, f"Failed to encrypt with Blowfish: {e}"
-    
-
-# File: operations/ciphers.py
-
-# ... (existing functions)
-
-def aes_decrypt(text: str, key: str) -> tuple[bool, str]:
-    """Decrypts text using AES-256."""
-    try:
-        iv_hex = text[:32]
-        ct_hex = text[32:]
-        iv = bytes.fromhex(iv_hex)
-        ct = bytes.fromhex(ct_hex)
-        key_bytes = key.encode('utf-8')
-
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+        key_bytes = key.encode()
+        blob = base64.b64decode(data)
+        iv, ct = blob[:16], blob[16:]
         cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        
-        padded_data = decryptor.update(ct) + decryptor.finalize()
-        unpadded_data = unpadder.update(padded_data) + unpadder.finalize()
-        
-        return True, unpadded_data.decode('utf-8')
+        dec = cipher.decryptor()
+        return True, _unpad(dec.update(ct) + dec.finalize()).decode()
     except Exception as e:
-        return False, f"Failed to decrypt with AES: {e}"
+        return False, f"AES decrypt error: {e}"
 
-
-def des_decrypt(text: str, key: str) -> tuple[bool, str]:
-    """Decrypts text using DES."""
+# DES
+def des_encrypt(text: str, key: str):
     try:
-        iv_hex = text[:16]
-        ct_hex = text[16:]
-        iv = bytes.fromhex(iv_hex)
-        ct = bytes.fromhex(ct_hex)
-        key_bytes = key.encode('utf-8')
-
-        unpadder = padding.PKCS7(algorithms.TripleDES.block_size).unpadder()
+        key_bytes = key.encode()[:8].ljust(8, b'0')
+        iv = os.urandom(8)
         cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        
-        padded_data = decryptor.update(ct) + decryptor.finalize()
-        unpadded_data = unpadder.update(padded_data) + unpadder.finalize()
-        
-        return True, unpadded_data.decode('utf-8')
+        enc = cipher.encryptor()
+        ct = enc.update(_pad(text.encode())) + enc.finalize()
+        return True, base64.b64encode(iv + ct).decode()
     except Exception as e:
-        return False, f"Failed to decrypt with DES: {e}"
+        return False, f"DES encrypt error: {e}"
 
-
-def triple_des_decrypt(text: str, key: str) -> tuple[bool, str]:
-    """Decrypts text using Triple DES."""
+def des_decrypt(data: str, key: str):
     try:
-        iv_hex = text[:16]
-        ct_hex = text[16:]
-        iv = bytes.fromhex(iv_hex)
-        ct = bytes.fromhex(ct_hex)
-        key_bytes = key.encode('utf-8')
-
-        unpadder = padding.PKCS7(algorithms.TripleDES.block_size).unpadder()
+        key_bytes = key.encode()[:8].ljust(8, b'0')
+        blob = base64.b64decode(data)
+        iv, ct = blob[:8], blob[8:]
         cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        
-        padded_data = decryptor.update(ct) + decryptor.finalize()
-        unpadded_data = unpadder.update(padded_data) + unpadder.finalize()
-        
-        return True, unpadded_data.decode('utf-8')
+        dec = cipher.decryptor()
+        return True, _unpad(dec.update(ct) + dec.finalize()).decode()
     except Exception as e:
-        return False, f"Failed to decrypt with Triple DES: {e}"
+        return False, f"DES decrypt error: {e}"
 
-
-def blowfish_decrypt(text: str, key: str) -> tuple[bool, str]:
-    """Decrypts text using Blowfish."""
+# Triple DES
+def triple_des_encrypt(text: str, key: str):
     try:
-        iv_hex = text[:16]
-        ct_hex = text[16:]
-        iv = bytes.fromhex(iv_hex)
-        ct = bytes.fromhex(ct_hex)
-        key_bytes = key.encode('utf-8')
+        key_bytes = key.encode()[:24].ljust(24, b'0')
+        iv = os.urandom(8)
+        cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
+        enc = cipher.encryptor()
+        ct = enc.update(_pad(text.encode())) + enc.finalize()
+        return True, base64.b64encode(iv + ct).decode()
+    except Exception as e:
+        return False, f"3DES encrypt error: {e}"
 
-        unpadder = padding.PKCS7(algorithms.Blowfish.block_size).unpadder()
+def triple_des_decrypt(data: str, key: str):
+    try:
+        key_bytes = key.encode()[:24].ljust(24, b'0')
+        blob = base64.b64decode(data)
+        iv, ct = blob[:8], blob[8:]
+        cipher = Cipher(algorithms.TripleDES(key_bytes), modes.CBC(iv), backend=default_backend())
+        dec = cipher.decryptor()
+        return True, _unpad(dec.update(ct) + dec.finalize()).decode()
+    except Exception as e:
+        return False, f"3DES decrypt error: {e}"
+
+# Blowfish
+def blowfish_encrypt(text: str, key: str):
+    try:
+        key_bytes = key.encode()[:56].ljust(16, b'0')
+        iv = os.urandom(8)
         cipher = Cipher(algorithms.Blowfish(key_bytes), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        
-        padded_data = decryptor.update(ct) + decryptor.finalize()
-        unpadded_data = unpadder.update(padded_data) + unpadder.finalize()
-        
-        return True, unpadded_data.decode('utf-8')
+        enc = cipher.encryptor()
+        ct = enc.update(_pad(text.encode())) + enc.finalize()
+        return True, base64.b64encode(iv + ct).decode()
     except Exception as e:
-        return False, f"Failed to decrypt with Blowfish: {e}"
-    
+        return False, f"Blowfish encrypt error: {e}"
+
+def blowfish_decrypt(data: str, key: str):
+    try:
+        key_bytes = key.encode()[:56].ljust(16, b'0')
+        blob = base64.b64decode(data)
+        iv, ct = blob[:8], blob[8:]
+        cipher = Cipher(algorithms.Blowfish(key_bytes), modes.CBC(iv), backend=default_backend())
+        dec = cipher.decryptor()
+        return True, _unpad(dec.update(ct) + dec.finalize()).decode()
+    except Exception as e:
+        return False, f"Blowfish decrypt error: {e}"
+
+# ---------------------------------------------------------------------------------------
+# Modern Algorithms: AES-GCM / AES-CTR / AES-CBC-HMAC / ChaCha20-Poly1305
+# ---------------------------------------------------------------------------------------
+
+def aes_gcm_encrypt(plaintext: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        aesgcm = AESGCM(key_bytes)
+        nonce = os.urandom(12)
+        ct = aesgcm.encrypt(nonce, plaintext.encode(), None)
+        return True, base64.b64encode(nonce + ct).decode()
+    except Exception as e:
+        return False, f"AES-GCM encrypt error: {e}"
+
+def aes_gcm_decrypt(data: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        aesgcm = AESGCM(key_bytes)
+        blob = base64.b64decode(data)
+        nonce, ct = blob[:12], blob[12:]
+        return True, aesgcm.decrypt(nonce, ct, None).decode()
+    except Exception as e:
+        return False, f"AES-GCM decrypt error: {e}"
+
+def aes_ctr_encrypt(text: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        nonce = os.urandom(16)
+        cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(nonce), backend=default_backend())
+        enc = cipher.encryptor()
+        ct = enc.update(text.encode()) + enc.finalize()
+        return True, base64.b64encode(nonce + ct).decode()
+    except Exception as e:
+        return False, f"AES-CTR encrypt error: {e}"
+
+def aes_ctr_decrypt(data: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        blob = base64.b64decode(data)
+        nonce, ct = blob[:16], blob[16:]
+        cipher = Cipher(algorithms.AES(key_bytes), modes.CTR(nonce), backend=default_backend())
+        dec = cipher.decryptor()
+        return True, dec.update(ct) + dec.finalize().decode()
+    except Exception as e:
+        return False, f"AES-CTR decrypt error: {e}"
+
+def aes_cbc_encrypt_with_hmac(plaintext: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        iv = os.urandom(16)
+        cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(iv), backend=default_backend())
+        enc = cipher.encryptor()
+        ct = enc.update(_pad(plaintext.encode())) + enc.finalize()
+
+        h = hmac.HMAC(key_bytes, hashes.SHA256(), backend=default_backend())
+        h.update(iv + ct)
+        tag = h.finalize()
+        return True, base64.b64encode(iv + ct + tag).decode()
+    except Exception as e:
+        return False, f"AES-CBC-HMAC encrypt error: {e}"
+
+def aes_cbc_decrypt_with_hmac(data: str, key: str):
+    try:
+        blob = base64.b64decode(data)
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        iv, ct, tag = blob[:16], blob[16:-32], blob[-32:]
+        h = hmac.HMAC(key_bytes, hashes.SHA256(), backend=default_backend())
+        h.update(iv + ct)
+        h.verify(tag)
+        cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(iv), backend=default_backend())
+        dec = cipher.decryptor()
+        return True, _unpad(dec.update(ct) + dec.finalize()).decode()
+    except Exception as e:
+        return False, f"AES-CBC-HMAC decrypt error: {e}"
+
+def chacha20_poly1305_encrypt(plaintext: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        nonce = os.urandom(12)
+        chacha = ChaCha20Poly1305(key_bytes)
+        ct = chacha.encrypt(nonce, plaintext.encode(), None)
+        return True, base64.b64encode(nonce + ct).decode()
+    except Exception as e:
+        return False, f"ChaCha20 encrypt error: {e}"
+
+def chacha20_poly1305_decrypt(data: str, key: str):
+    try:
+        key_bytes = key.encode()[:32].ljust(32, b'0')
+        blob = base64.b64decode(data)
+        nonce, ct = blob[:12], blob[12:]
+        chacha = ChaCha20Poly1305(key_bytes)
+        pt = chacha.decrypt(nonce, ct, None)
+        return True, pt.decode()
+    except Exception as e:
+        return False, f"ChaCha20 decrypt error: {e}"
