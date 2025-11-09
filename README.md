@@ -2,164 +2,180 @@
 
 # CryptoSuite 🔐
 
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Repo size](https://img.shields.io/github/repo-size/sh4dowkey/CryptoSuite?style=for-the-badge)](https://github.com/sh4dowkey/CryptoSuite)
-![Python](https://img.shields.io/badge/python-3.8+-green.svg?style=for-the-badge&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/python-3.8%2B-green.svg?style=for-the-badge\&logo=python\&logoColor=white)
 
-
-<img src="./assets/header-dark.webp" width="75%" alt="CryptoSuite - dark header" >
+<img src="./assets/header-dark.webp" width="75%" alt="CryptoSuite - header" >
 
 </div>
 
-<br>
+---
 
-> **CryptoSuite** — a lightweight, extensible cryptography toolkit written in **Python**. Designed for clarity and ease-of-use with a focus on modularity and learning.
-> *Work in Progress — currently implements Base64 encode/decode.* 🚧
+**CryptoSuite** is a lightweight, educational cryptography toolbox with a sleek CustomTkinter GUI. It bundles classic ciphers, modern symmetric and authenticated ciphers, asymmetric signing/verification, encoders/decoders, hash & KDF utilities, and handy text converters — all organised for quick experimentation and learning.
 
+This README was generated from the current codebase and reflects the functionality shipped in this repository (GUI app entrypoint: `app.py`).
 
 ---
 
+## Quick links
 
-## ✨ Why CryptoSuite?
-
-CryptoSuite simplifies cryptographic tasks into a clear, step-by-step **recipe workflow**.
-
-It’s designed for students, developers, and security enthusiasts who need a practical yet approachable tool.
-
-CryptoSuite makes cryptography accessible.
+* Run the app: `python app.py`
+* Install dependencies: `pip install -r requirements.txt`
+* Primary entrypoint: `app.py`
+* GUI framework: `customtkinter` (Modern-looking Tkinter wrapper)
 
 ---
 
+## Features
 
-## 🛠️  Features
-
-**🚧 Available now**
-- Recipe-based system: chain multiple operations in sequence
-- Base64 encode & decode , HEX encode & decode , Cipher
-- Save and load recipes  
-- Dark-themed GUI with separate encrypt/decrypt panels  
-
-**🚧 Planned / Work in progress**
-- Auto-Detect mode ✨: analyze input and suggest operations  
-- AES encryption & decryption  
-- Classic ciphers  
-- Hashing tab (MD5, SHA-256)
-
-> See **Roadmap** below for details.
-
+* Modern GUI for encrypting/decrypting text and files.
+* Classic ciphers: Caesar, Atbash, ROT13, Vigenère.
+* Symmetric ciphers: AES (CBC / CTR / GCM), AES-CBC with HMAC, AES-GCM, AES-CTR, ChaCha20-Poly1305, DES / 3DES, Blowfish.
+* Authenticated encryption support (AES-GCM, ChaCha20Poly1305).
+* Asymmetric signing / verification: RSA sign/verify (PEM keys), Ed25519 sign/verify.
+* Encoders & decoders: Base64 (and urlsafe), Base32, Base85, Hex.
+* Hashes & KDFs: MD5, SHA1, SHA256, SHA512, HMAC-SHA256/512, PBKDF2, scrypt, (Argon2 placeholder implemented as a fallback).
+* Text converters: Morse, Binary, Hex converters and more.
+* File I/O helpers for encrypting files (note: file encryption commonly prefixes IV to ciphertext in the current implementation).
+* `auto_detect` module: helpers intended to auto-detect input types / encodings (there is a GUI panel for this in `gui/auto_detect.py`).
 
 ---
 
+## Supported operations (at-a-glance)
 
-## 🔐 Example Workflows
+### Encoders / Decoders
 
-### ⚡ Encryption & Decryption
+* Base64 / URL-safe Base64
+* Base32
+* Base85
+* Hex
 
-<div align="center">
-  <img src="./assets/encrypt.webp" alt="Encrypt" width="45%"/>
-  <img src="./assets/decrypt.webp" alt="Decrypt" width="45%"/>
-  <br/>
-  <sub>⚡ Encryption</sub>   <sub>🔓 Decryption</sub>
-</div>
+### Classic Ciphers
+
+* Caesar cipher (shift)
+* Atbash
+* ROT13
+* Vigenère cipher
+
+### Symmetric & Authenticated Ciphers
+
+* AES (CBC / CTR / GCM)
+* AES-CBC with HMAC (authenticated pattern)
+* ChaCha20-Poly1305
+* DES / Triple DES (3DES)
+* Blowfish
+
+### Asymmetric
+
+* RSA signing & verification (PEM keys, PSS padding used in code)
+* Ed25519 signing & verification
+
+### Hashing & KDFs
+
+* MD5, SHA1, SHA256, SHA512
+* HMAC-SHA256, HMAC-SHA512
+* PBKDF2
+* scrypt (stdlib implementation)
+* Argon2 placeholder (currently a fallback—see notes)
+
+### Text Converters
+
+* Hex ⇄ Text
+* Morse ⇄ Text
+* Binary ⇄ Text
 
 ---
 
-### 📂 Save & Load Recipes
+## Quick start
 
-<div align="center">
-  <img src="./assets/save.webp" alt="Save Recipe" width="45%"/>
-  <img src="./assets/load.webp" alt="Load Recipe" width="45%"/>
-  <br/>
-  <sub>💾 Save Recipe</sub>   <sub>📂 Load Recipe</sub>
-</div>
-
-<br>
-
-> 💡 **Tip:** You can chain multiple encryptions in one recipe for extra security!
-
----
-
-## 🚀 Quick Start
+1. Create and activate a virtual environment (recommended):
 
 ```bash
-# Clone the repo
-git clone https://github.com/sh4dowkey/CryptoSuite.git
-cd CryptoSuite
-
-# (Optional) create and activate venv
 python -m venv .venv
-# Windows: .\.venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+source .venv/bin/activate    # macOS / Linux
+.\.venv\Scripts\activate   # Windows
+```
 
-# Install dependencies
+2. Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-# Run the application
-python main.py
+3. Run the GUI:
 
-# This will launch the graphical user interface.
+```bash
+python app.py
+```
+
+You should see the CryptoSuite GUI. Use the left-side panels to choose operation categories (Encrypt / Decrypt / Convert / Hash / Sign) and follow the on-screen fields.
+
+---
+
+## Example usage notes
+
+* File encryption routines typically write the IV as a prefix to the ciphertext (so decryption reads the first bytes as IV).
+* RSA sign/verify functions expect PEM-formatted keys for private/public operations.
+* Some KDF placeholders (Argon2) are implemented as simplified fallbacks — to use real Argon2, install an Argon2 library (e.g. `argon2-cffi`) and replace the placeholder function with the proper implementation.
+
+---
+
+## Project structure (important files)
+
+```
+CryptoSuite/
+├─ app.py                 # GUI entrypoint
+├─ gui/                   # GUI frames and components
+│  ├─ encrypt_frame.py
+│  ├─ decrypt_frame.py
+│  ├─ auto_detect.py      # auto-detection helpers / panel
+│  └─ base_frame.py
+├─ operations/            # Core crypto operations used by the GUI
+│  ├─ ciphers.py
+│  ├─ encoders.py
+│  ├─ hashing_core.py
+│  ├─ text_converters.py
+│  ├─ asymmetric_ciphers.py
+│  └─ file_io.py
+├─ assets/                # images used in the GUI
+└─ requirements.txt
 ```
 
 ---
 
+## Development notes & TODOs (suggested)
 
-## 📖 Basic Usage
-
-1.  Launch the application by running `python main.py`.
-2.  In the **"Encrypt / Encode"** panel on the left, type your text into the "Input" box.
-3.  Click the **"Add Operation"** dropdown and select **"To Base64"**.
-4.  The encoded result will instantly appear in the "Output" box.
-5.  You can add more operations to the recipe or save the current recipe using the **"Save Recipe"** button.
-
----
-
-
-## 🛣️ Roadmap
-
-**v0.1** (current)  
-- GUI with encrypt/decrypt panels  
-- Base64 encode/decode  
-- Recipe system with save/load  
-
-**v0.2**  
-- Auto-Detect feature  
-- AES cipher integration  
-- Unit tests  
-
-**v0.3+**  
-- Classic ciphers and hashing  
-- Drag-and-drop for recipe steps  
-- Expanded documentation and CI  
+* [ ] **Implement Argon2 properly** — the current `argon2_derive` in `hashing_core.py` is a placeholder that uses SHA-512. To be secure, integrate `argon2-cffi` or similar.
+* [ ] **Add unit tests** for each operation in `operations/` (pytest recommended).
+* [ ] **Add more robust key management** for RSA (PEM import/export helpers) and provide GUI options to load/save keys.
+* [ ] **Auto-detect improvements** — wire the `auto_detect` panel to suggest operations automatically (you mentioned adding an “Auto Detect” button — the codebase already includes an `auto_detect.py` module; you can place a button in the recipe panel to call its detection functions).
+* [ ] **Input validation & strong key checks** — warn when weak keys (e.g., short AES keys, DES keys) are used.
+* [ ] **Packaging** — wrap into an executable with PyInstaller for non-dev users.
 
 ---
 
+## Security & disclaimers
 
-## 🤝 Contributing
-
-Contributions are welcome!  
-
-1. Fork the repo  
-2. Create a feature branch (`git checkout -b feat/my-feature`)  
-3. Add tests and documentation  
-4. Open a Pull Request  
-
-Please keep functions small, documented, and covered by unit tests where possible.
+This project is intended for learning, experimentation and educational purposes only. Crypto implementations are notoriously tricky — **do not** use this tool for protecting sensitive production data without a proper security review and thorough testing.
 
 ---
 
+## Contributing
 
-## 📝 License
+Contributions welcome! Open an issue describing the feature or bug, or submit a PR. Please keep changes focused and add unit tests where possible.
 
-This project is released under the **MIT License**.
+---
+
+## License
+
+Released under the **MIT License**. See `LICENSE` (or add one if missing) for details.
 
 ---
 
+## Acknowledgements
 
-## 🙏 Acknowledgements
-
-Inspired by community cryptography resources and educational projects.
-
-If you find CryptoSuite useful, please ⭐ the repo and consider contributing!
+Inspired by community cryptography resources and educational projects. If CryptoSuite helped you, please ⭐ the repo.
 
 ---
+
+*Generated automatically from the repository contents.*
